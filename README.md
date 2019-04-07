@@ -1,6 +1,6 @@
 # rename.py
 
-Version 2019-04-06a
+Version 2019-04-06a  
 Written by Christian Moomaw
 
 ## USAGE
