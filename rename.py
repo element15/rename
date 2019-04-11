@@ -213,8 +213,11 @@ def main():
 		print(i[0] + ' ==> ' + i[1])
 
 	if not args.dry_run:
-		for i in rename_pairs:
-			rename(i[0], i[1])
+		response = input('Continue with rename? [y/N] ').lower()
+		affermative = ('y', 'yes')
+		if response in affermative:
+			for i in rename_pairs:
+				rename(i[0], i[1])
 
 
 
