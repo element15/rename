@@ -73,7 +73,7 @@ import re
 # Two digit years which are strictly less than this value will be interpreted
 # as being a part of the 2000s. All other years will be considered part of the
 # 1900s. This value may be overriden by the user using a command argument
-DEFAULT_CENTURY_ROLLOVER = 30
+DEFAULT_CENTURY_ROLLOVER = 50
 
 def parse_args():
 	# Parse the command arguments in sys.argv
