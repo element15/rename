@@ -1,25 +1,10 @@
 #!/usr/local/bin/python3
 
-help_string = """\
+VERSION='0.0.1'
+LICENSE = """\
 rename.py
-Version 2019-04-06a
+Version dev
 Written by Christian Moomaw
-
-USAGE
-
-    rename.py [-n] <search_pattern> <replace_pattern> <file_1> [file_2] ...
-
-    -n  (Also, `--dry-run`) Perform a dry run; print the rename operations
-        which would have been performed, but don't actually rename
-        anything
-
-DESCRIPTION
-
-Rename the files described according to Python regex patterns
-`search_pattern` and `replace_pattern`. Replacement grammar comes from the
-Python 3 `re.sub()` function.
-
-LICENSE
 
 This is free and unencumbered software released into the public domain.
 
@@ -44,64 +29,207 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 """
+help_description = """\
+Rename the files described according to Python regex patterns`search_pattern`
+and `replace_pattern`.
+"""
+help_epilogue = """\
+
+MORE DETAILS
+
+For details on the permitted regex grammar for the <search_pattern> argument,
+refer to the Python 3 `re` documentation (link below). For details on how to
+format <replace_pattern> refer to #re.sub on the aforementioned doc page.
+
+https://docs.python.org/3/library/re.html
+
+The `--date` option likewise requires the existing date format to be specified.
+Date formats consist of three parts (day, month, and year) which may be in any
+order:
+
+Year formats:
+    y    two or four-digit year (04 or 2004)
+    yy   two-digit year only (04)
+    yyyy four-digit year only (2004)
+Month formats:
+    m    numeric month which may or may not be left-padded (4 or 04)
+    mm   numeric month which is left-padded (04)
+    mmm  case insensitive alphabetic month (apr or april)
+Day formats:
+    d    day which may or may not be left-padded (1 or 01)
+    dd   day date which is left-padded (01)
+
+Examples:
+"dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
+"mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
+"mmddyyyy" ==> 04/01/2004, 04.01.2004, 04012004, etc...
+"""
 
 from os import rename
-from sys import argv
+from warnings import warn
+import argparse
 import re
 
-def get_params():
-	# Parses the arguments in sys.argv. Returns a `dict` with the following
-	# fields:
-	# {
-	# 	"dry_run": boolean indicating whether to execute a dry run
-	#   "search_pattern": regex input pattern
-	# 	"replace_pattern": regex pattern used to rename each file
-	# 	"file_list": list containing all specified file strings
-	# }
-	#
-	# NOTE: This function does not validate any command syntax.
+# Two digit years which are strictly less than this value will be interpreted
+# as being a part of the 2000s. All other years will be considered part of the
+# 1900s. This value may be overriden by the user using a command argument
+DEFAULT_CENTURY_ROLLOVER = 50
 
-	out = {}
-	arg_shift = 0 # If `-n` is present, all other args will be shifted by 1
+def parse_args():
+	# Parse the command arguments in sys.argv
 
-	if len(argv) < 4: # Filename, search_pattern, replace_pattern, file_1
-		return out
+	parser = argparse.ArgumentParser(description=help_description,
+		epilog=help_epilogue,
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
+	parser.add_argument('-n', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
+	parser.add_argument('-v', '--version', action='version',
+		version=('%(prog)s ' + VERSION), help='print the version and exit')
+	parser.add_argument('-c', '--century', metavar='century_prefix', type=str,
+		nargs=1, help='specify the number to prepend to two-digit years')
 
-	if argv[1].lower() in ('-n', '--dry-run'):
-		if len(argv) < 5: # Need one more argument
-			return out
-		out['dry_run'] = True
-		arg_shift = 1
-	else:
-		out['dry_run'] = False
+	# Make -p and -d mutually exclusive
+	group = parser.add_mutually_exclusive_group(required=True)
+	group.add_argument('-p', '--pattern', nargs=2, type=str,
+		metavar=('<search_pattern>', '<replace_pattern>'),
+		help=('rename all matching files from <search_pattern> to'
+			'<replace_pattern>'))
+	group.add_argument('-d', '--date', nargs=1, type=str, metavar='<format>',
+		help=('reformat any dates found in filenames to conform to ISO 8601'
+			'(yyyy-mm-dd)'))
 
-	out['search_pattern'] = argv[1 + arg_shift]
-	out['replace_pattern'] = argv[2 + arg_shift]
-	out['file_list'] = argv[(3 + arg_shift):]
 
-	return out
+	args = parser.parse_args()
+	return args
+
+
+def date_pattern(mode):
+	# Given a string describing an existing date format, generate a regex
+	# pattern to extract a date matching said format from a string.
+
+	# A valid mode is composed of one each from the month, day, and year
+	# categories below. The examples given to the right are 1 April 2004.
+	# The boolean value in each tuple indicates whether dilineating characters
+	# (such as comma, hyphen, or space) should be required after the given
+	# value. This is to avoid ambiguities associated with variable-length
+	# pattern groups.
+	mode_key = {
+		# NOTE: The presence of a three-digit year in a filename results in
+		# undefined behavior.
+		'y': 	(r'(?P<y>\d{2,4})', True),  # 04, 2004 (and 004; see note above)
+		'yy': 	(r'(?P<y>\d{2})',   False), # 04
+		'yyyy': (r'(?P<y>\d{4})',   False), # 2004
+		'm': 	(r'(?P<m>\d{1,2})', True),  # 4, 04
+		'mm': 	(r'(?P<m>\d{2})',   False), # 04
+		'mmm': 	(r'(?P<m>\w+)',     False), # Apr, April, aprile
+		'd': 	(r'(?P<d>\d{1,2})', True),  # 1, 01
+		'dd': 	(r'(?P<d>\d{2})',   False), # 01
+	}
+
+	# Parse the mode spec by separating it into it's three components
+	mode_pattern = re.compile(r'(?P<a>(?P<x>[mdy])(?P=x)*)\W?'
+		r'(?P<b>(?P<y>[mdy])(?P=y)*)\W?(?P<c>(?P<z>[mdy])(?P=z)*)')
+	mode_match = mode_pattern.match(mode)
+
+	# Ensure that the specified mode contains exactly one each of day, month,
+	# and year. (For example, 'ddmmdd' is not a valid mode.)
+	mode_parts = (mode_match.group('a')[:1], mode_match.group('b')[:1],
+		mode_match.group('c')[:1])
+	mode_parts = set(mode_parts) # Remove duplicates
+	if len(mode_parts) != 3:
+		raise ValueError('Invalid date pattern: ' + mode)
+
+	# Build the date regex pattern from the appropriate `mode_key` entries
+	mode_values = [mode_key[mode_match.group(i)] for i in ('a', 'b', 'c')]
+	date_pattern = re.compile(r'(?P<prefix>.*?)' +
+		mode_values[0][0] + r',?[.\- ]' + (r'' if mode_values[0][1] else r'?') +
+		mode_values[1][0] + r',?[.\- ]' + (r'' if mode_values[1][1] else r'?') +
+		mode_values[2][0] + r'(?P<suffix>.*)'
+	)
+	return date_pattern
+
+def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER,
+	century_prefix=None):
+	# Given arbitrary string `str` and regex pattern `pattern` generated by
+	# `date_pattern()`, find and reformat a date in `str` to be of the form
+	# 'yyyy-mm-dd' (see ISO 8601). The `rollover` value determines how
+	# two-digit years are converted to four-digit years
+
+	month_key = { # Alphabetic months must be all lowercase
+		'01': ('01', '1', 'jan', 'january', 'gen', 'gennaio'),
+		'02': ('02', '2', 'feb', 'february', 'febbraio'),
+		'03': ('03', '3', 'mar', 'march', 'marzo'),
+		'04': ('04', '4', 'apr', 'april', 'aprile'),
+		'05': ('05', '5', 'may', 'mag', 'maggio'),
+		'06': ('06', '6', 'jun', 'june', 'giu', 'giunio'),
+		'07': ('07', '7', 'jul', 'july', 'lug', 'luglio'),
+		'08': ('08', '8', 'aug', 'august', 'ago', 'agosto'),
+		'09': ('09', '9', 'sep', 'sept', 'september', 'set', 'sett',
+			'settembre'),
+		'10': ('10', 'oct', 'october', 'ott', 'ottobre'),
+		'11': ('11', 'nov', 'november', 'novembre'),
+		'12': ('12', 'dec', 'december', 'dic', 'dicembre')
+	}
+
+	m = pattern.match(str)
+	if not m:
+		warn('No date match found in string: ' + str)
+		return str
+	year = m.group('y')
+	month = m.group('m')
+	day = m.group('d')
+
+	# Prepend '19' or '20' to the year if necessary
+	if len(year) == 2:
+		if century_prefix:
+			century = century_prefix
+		else:
+			century = '20' if int(year) < rollover else '19'
+		year = century + year
+	# Normalize the month according to `month_key`
+	month = month.lower()
+	found_month_match = False
+	for key in month_key:
+		if month in month_key[key]:
+			month = key
+			found_month_match = True
+			break
+	if not found_month_match:
+		raise ValueError('Unable to normalize month string: ' + month)
+	# Left-pad the day with a zero if necessary
+	if len(day) == 1:
+		day = '0' + day
+
+	# Generate new string with normalized date
+	reformatted_str = (m.group('prefix') + year + '-' + month + '-' + day +
+		m.group('suffix'))
+	return reformatted_str
 
 def main():
-	params = get_params()
-	if not params:
-		print(help_string)
-		return
+	args = parse_args()
+	print(args)
+	if args.pattern:
+		p = re.compile(args.pattern[0])
+		rename_pairs = [(f, re.sub(p, args.pattern[1], f, 1))
+			for f in args.files]
+	else: # args.date
+		p = date_pattern(args.date[0])
+		rename_pairs = [(f, reformat_date(f, p,
+			century_prefix=args.century[0])) for f in args.files]
 
-	# Generate rename pairs
-	p = re.compile(params['search_pattern'])
-	rename_pairs = [(f, re.sub(p, params['replace_pattern'], f)) \
-			for f in params['file_list']] # List of (before, after) tuples
 	# Remove trivial renames
 	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
 
-	if params['dry_run']:
-		for i in rename_pairs:
-			print(i[0] + ' ==> ' + i[1])
-	else:
-		for i in rename_pairs:
-			print(i[0] + ' ==> ' + i[1])
-			rename(i[0], i[1])
+	for i in rename_pairs: # Show preview of rename operations
+		print(i[0] + ' ==> ' + i[1])
 
-
+	if not args.dry_run:
+		response = input('Continue with rename? [y/N] ').lower()
+		affermative = ('y', 'yes')
+		if response in affermative:
+			for i in rename_pairs:
+				rename(i[0], i[1])
 
 main()
