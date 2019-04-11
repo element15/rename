@@ -110,17 +110,21 @@ def date_pattern(mode):
 
 	# A valid mode is composed of one each from the month, day, and year
 	# categories below. The examples given to the right are 1 April 2004.
+	# The boolean value in each tuple indicates whether dilineating characters
+	# (such as comma, hyphen, or space) should be required after the given
+	# value. This is to avoid ambiguities associated with variable-length
+	# pattern groups.
 	mode_key = {
 		# NOTE: The presence of a three-digit year in a filename results in
 		# undefined behavior.
-		'y': 	r'(?P<y>\d{2,4})', 	# 04, 2004 (and 004; see note above)
-		'yy': 	r'(?P<y>\d{2})', 	# 04
-		'yyyy': r'(?P<y>\d{4})', 	# 2004
-		'm': 	r'(?P<m>\d{1,2})', 	# 4, 04
-		'mm': 	r'(?P<m>\d{2})', 	# 04
-		'mmm': 	r'(?P<m>\w+)', 		# Apr, April, aprile
-		'd': 	r'(?P<d>\d{1,2})', 	# 1, 01
-		'dd': 	r'(?P<d>\d{2})', 	# 01
+		'y': 	(r'(?P<y>\d{2,4})', True),  # 04, 2004 (and 004; see note above)
+		'yy': 	(r'(?P<y>\d{2})',   False), # 04
+		'yyyy': (r'(?P<y>\d{4})',   False), # 2004
+		'm': 	(r'(?P<m>\d{1,2})', True),  # 4, 04
+		'mm': 	(r'(?P<m>\d{2})',   False), # 04
+		'mmm': 	(r'(?P<m>\w+)',     False), # Apr, April, aprile
+		'd': 	(r'(?P<d>\d{1,2})', True),  # 1, 01
+		'dd': 	(r'(?P<d>\d{2})',   False), # 01
 	}
 
 	# Parse the mode spec by separating it into it's three components
@@ -137,10 +141,11 @@ def date_pattern(mode):
 		raise ValueError('Invalid date pattern: ' + mode)
 
 	# Build the date regex pattern from the appropriate `mode_key` entries
-	date_pattern = re.compile(r'(?P<prefix>.*)' +
-		mode_key[mode_match.group('a')] + r',?[.\- ]?' +
-		mode_key[mode_match.group('b')] + r',?[.\- ]?' +
-		mode_key[mode_match.group('c')] + r'(?P<suffix>.*)'
+	mode_values = [mode_key[mode_match.group(i)] for i in ('a', 'b', 'c')]
+	date_pattern = re.compile(r'(?P<prefix>.*?)' +
+		mode_values[0][0] + r',?[.\- ]' + (r'' if mode_values[0][1] else r'?') +
+		mode_values[1][0] + r',?[.\- ]' + (r'' if mode_values[1][1] else r'?') +
+		mode_values[2][0] + r'(?P<suffix>.*)'
 	)
 	return date_pattern
 
