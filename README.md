@@ -40,22 +40,22 @@ The `--date` option likewise requires the existing date format to be specified.
 Date formats consist of three parts (day, month, and year) which may be in any
 order:
 
-Year formats:
-    y    two or four-digit year (04 or 2004)
-    yy   two-digit year only (04)
-    yyyy four-digit year only (2004)
-Month formats:
-    m    numeric month which may or may not be left-padded (4 or 04)
-    mm   numeric month which is left-padded (04)
-    mmm  case insensitive alphabetic month (apr or april)
-Day formats:
-    d    day which may or may not be left-padded (1 or 01)
-    dd   day date which is left-padded (01)
+	Year formats:
+	    y    two or four-digit year (04 or 2004)
+	    yy   two-digit year only (04)
+	    yyyy four-digit year only (2004)
+	Month formats:
+	    m    numeric month which may or may not be left-padded (4 or 04)
+	    mm   numeric month which is left-padded (04)
+	    mmm  case insensitive alphabetic month (apr or april)
+	Day formats:
+	    d    day which may or may not be left-padded (1 or 01)
+	    dd   day date which is left-padded (01)
 
-Examples:
-"dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
-"mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
-"mmddyyyy" ==> 04/01/2004, 04.01.2004, 04012004, etc...
+	Examples:
+	"dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
+	"mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
+	"mmddyyyy" ==> 04/01/2004, 04.01.2004, 04012004, etc...
 
 ## LICENSE
 
