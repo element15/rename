@@ -5,17 +5,57 @@ Written by Christian Moomaw
 
 ## USAGE
 
-    rename.py [-n] <search_pattern> <replace_pattern> <file_1> [file_2] ...
+	usage: rename.py [-h] [-n] [-v] [-c century_prefix]
+	                 (-p <search_pattern> <replace_pattern> | -d <format>)
+	                 file [file ...]
 
-    -n  (Also, `--dry-run`) Perform a dry run; print the rename operations
-        which would have been performed, but don't actually rename
-        anything
+	Rename the files described according to Python regex patterns`search_pattern`
+	and `replace_pattern`.
 
-## DESCRIPTION
+	positional arguments:
+	  file                  file to be renamed
 
-Rename the files described according to Python regex patterns
-`search_pattern` and `replace_pattern`. Replacement grammar comes from the
-Python 3 `re.sub()` function.
+	optional arguments:
+	  -h, --help            show this help message and exit
+	  -n, --dry-run         perform a dry run; don't actually rename anything
+	  -v, --version         print the version and exit
+	  -c century_prefix, --century century_prefix
+	                        specify the number to prepend to two-digit years
+	  -p <search_pattern> <replace_pattern>, --pattern <search_pattern> <replace_pattern>
+	                        rename all matching files from <search_pattern>
+	                        to<replace_pattern>
+	  -d <format>, --date <format>
+	                        reformat any dates found in filenames to conform to
+	                        ISO 8601(yyyy-mm-dd)
+
+## MORE DETAILS
+
+For details on the permitted regex grammar for the <search_pattern> argument,
+refer to the Python 3 `re` documentation (link below). For details on how to
+format <replace_pattern> refer to #re.sub on the aforementioned doc page.
+
+https://docs.python.org/3/library/re.html
+
+The `--date` option likewise requires the existing date format to be specified.
+Date formats consist of three parts (day, month, and year) which may be in any
+order:
+
+Year formats:
+    y    two or four-digit year (04 or 2004)
+    yy   two-digit year only (04)
+    yyyy four-digit year only (2004)
+Month formats:
+    m    numeric month which may or may not be left-padded (4 or 04)
+    mm   numeric month which is left-padded (04)
+    mmm  case insensitive alphabetic month (apr or april)
+Day formats:
+    d    day which may or may not be left-padded (1 or 01)
+    dd   day date which is left-padded (01)
+
+Examples:
+"dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
+"mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
+"mmddyyyy" ==> 04/01/2004, 04.01.2004, 04012004, etc...
 
 ## LICENSE
 
