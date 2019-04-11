@@ -205,7 +205,8 @@ def main():
 	args = parse_args()
 	if args.pattern:
 		p = re.compile(args.pattern[0])
-		rename_pairs = [(f, re.sub(p, args.pattern[1], f)) for f in args.files]
+		rename_pairs = [(f, re.sub(p, args.pattern[1], f, 1))
+			for f in args.files]
 	else: # args.date
 		p = date_pattern(args.date[0])
 		rename_pairs = [(f, reformat_date(f, p)) for f in args.files]
