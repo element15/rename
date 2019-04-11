@@ -1,5 +1,6 @@
 #!/usr/local/bin/python3
 
+VERSION='dev'
 help_string = """\
 rename.py
 Version dev
@@ -44,10 +45,46 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 """
+help_description = """\
+Rename the files described according to Python regex patterns`search_pattern`
+and `replace_pattern`.
+"""
+help_epilogue = """\
+
+MORE DETAILS
+
+For details on the permitted regex grammar for the <search_pattern> argument,
+refer to the Python 3 `re` documentation (link below). For details on how to
+format <replace_pattern> refer to #re.sub on the aforementioned doc page.
+
+https://docs.python.org/3/library/re.html
+
+The `--date` option likewise requires the existing date format to be specified.
+Date formats consist of three parts (day, month, and year) which may be in any
+order:
+
+Year formats:
+    y    two or four-digit year (04 or 2004)
+    yy   two-digit year only (04)
+    yyyy four-digit year only (2004)
+Month formats:
+    m    numeric month which may or may not be left-padded (4 or 04)
+    mm   numeric month which is left-padded (04)
+    mmm  case insensitive alphabetic month (apr or april)
+Day formats:
+    d    day which may or may not be left-padded (1 or 01)
+    dd   day date which is left-padded (01)
+
+Examples:
+"dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
+"mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
+"mmddyyyy" ==> 04/01/2004 only
+"""
 
 from os import rename
 from sys import argv
 from warnings import warn
+import argparse
 import re
 
 # Two digit years which are strictly less than this value will be interpreted
@@ -55,37 +92,33 @@ import re
 # 1900s. This value may be overriden by the user using a command argument
 DEFAULT_CENTURY_ROLLOVER = 30
 
-def get_params():
-	# Parses the arguments in sys.argv. Returns a `dict` with the following
-	# fields:
-	# {
-	# 	"dry_run": boolean indicating whether to execute a dry run
-	#   "search_pattern": regex input pattern
-	# 	"replace_pattern": regex pattern used to rename each file
-	# 	"file_list": list containing all specified file strings
-	# }
-	#
-	# NOTE: This function does not validate any command syntax.
+def parse_args():
+	# Parse the command arguments in sys.argv
 
-	out = {}
-	arg_shift = 0 # If `-n` is present, all other args will be shifted by 1
+	parser = argparse.ArgumentParser(description=help_description,
+		epilog=help_epilogue,
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
+	parser.add_argument('-n', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
+	parser.add_argument('-v', '--version', action='version',
+		version=('%(prog)s ' + VERSION), help='print the version and exit')
 
-	if len(argv) < 4: # Filename, search_pattern, replace_pattern, file_1
-		return out
+	# Make -p and -d mutually exclusive
+	group = parser.add_mutually_exclusive_group(required=True)
+	group.add_argument('-p', '--pattern', nargs=2, type=str,
+		metavar=('SEARCH_PATTERN', 'REPLACE_PATTERN'),
+		help=('rename all matching files from <search_pattern> to'
+			'<replace_pattern>'))
+	group.add_argument('-d', '--date', nargs=1, type=str, metavar='FORMAT',
+		help=('reformat any dates found in filenames to conform to ISO 8601'
+			'(yyyy-mm-dd)'))
 
-	if argv[1].lower() in ('-n', '--dry-run'):
-		if len(argv) < 5: # Need one more argument
-			return out
-		out['dry_run'] = True
-		arg_shift = 1
-	else:
-		out['dry_run'] = False
 
-	out['search_pattern'] = argv[1 + arg_shift]
-	out['replace_pattern'] = argv[2 + arg_shift]
-	out['file_list'] = argv[(3 + arg_shift):]
+	args = parser.parse_args()
+	return args
 
-	return out
 
 def date_pattern(mode):
 	# Given a string describing an existing date format, generate a regex
@@ -181,24 +214,22 @@ def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER):
 	return reformatted_str
 
 def main():
-	params = get_params()
-	if not params:
-		print(help_string)
-		return
+	args = parse_args()
+	if args.pattern:
+		p = re.compile(args.pattern[0])
+		rename_pairs = [(f, re.sub(p, args.pattern[1], f)) for f in args.files]
+	else: # args.date
+		p = date_pattern(args.date)
+		rename_pairs = [(f, reformat_date(f, p)) for f in args.files]
 
-	# Generate rename pairs
-	p = re.compile(params['search_pattern'])
-	rename_pairs = [(f, re.sub(p, params['replace_pattern'], f)) \
-			for f in params['file_list']] # List of (before, after) tuples
 	# Remove trivial renames
 	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
 
-	if params['dry_run']:
+	for i in rename_pairs: # Show preview of rename operations
+		print(i[0] + ' ==> ' + i[1])
+
+	if not args.dry_run:
 		for i in rename_pairs:
-			print(i[0] + ' ==> ' + i[1])
-	else:
-		for i in rename_pairs:
-			print(i[0] + ' ==> ' + i[1])
 			rename(i[0], i[1])
 
 
