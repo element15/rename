@@ -1,26 +1,10 @@
 #!/usr/local/bin/python3
 
 VERSION='dev'
-help_string = """\
+LICENSE = """\
 rename.py
 Version dev
 Written by Christian Moomaw
-
-USAGE
-
-    rename.py [-n] <search_pattern> <replace_pattern> <file_1> [file_2] ...
-
-    -n  (Also, `--dry-run`) Perform a dry run; print the rename operations
-        which would have been performed, but don't actually rename
-        anything
-
-DESCRIPTION
-
-Rename the files described according to Python regex patterns
-`search_pattern` and `replace_pattern`. Replacement grammar comes from the
-Python 3 `re.sub()` function.
-
-LICENSE
 
 This is free and unencumbered software released into the public domain.
 
