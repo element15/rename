@@ -224,6 +224,4 @@ def main():
 			for i in rename_pairs:
 				rename(i[0], i[1])
 
-
-
 main()
