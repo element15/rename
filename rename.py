@@ -97,7 +97,7 @@ def parse_args():
 		help=('rename all matching files from <search_pattern> to'
 			'<replace_pattern>'))
 	group.add_argument('-d', '--date', nargs=1, type=str, metavar='<format>',
-		help=('reformat any dates found in filenames to conform to ISO 8601'
+		help=('reformat any dates found in filenames to conform to ISO 8601 '
 			'(yyyy-mm-dd)'))
 
 

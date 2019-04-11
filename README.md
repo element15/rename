@@ -26,7 +26,7 @@ Written by Christian Moomaw
 	                        to<replace_pattern>
 	  -d <format>, --date <format>
 	                        reformat any dates found in filenames to conform to
-	                        ISO 8601(yyyy-mm-dd)
+	                        ISO 8601 (yyyy-mm-dd)
 
 ## MORE DETAILS
 
