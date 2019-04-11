@@ -138,8 +138,8 @@ def date_pattern(mode):
 
 	# Build the date regex pattern from the appropriate `mode_key` entries
 	date_pattern = re.compile(r'(?P<prefix>.*)' +
-		mode_key[mode_match.group('a')] + r'[.\- ]?' +
-		mode_key[mode_match.group('b')] + r'[.\- ]?' +
+		mode_key[mode_match.group('a')] + r',?[.\- ]?' +
+		mode_key[mode_match.group('b')] + r',?[.\- ]?' +
 		mode_key[mode_match.group('c')] + r'(?P<suffix>.*)'
 	)
 	return date_pattern
