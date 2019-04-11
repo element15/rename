@@ -66,7 +66,6 @@ Examples:
 """
 
 from os import rename
-from sys import argv
 from warnings import warn
 import argparse
 import re
