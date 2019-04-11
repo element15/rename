@@ -62,7 +62,7 @@ Day formats:
 Examples:
 "dmy"      ==> 1/4/04 or 01/04/04 or 1/4/2004 etc...
 "mmmdyy"   ==> April 1 04 or APR 01, 04 etc...
-"mmddyyyy" ==> 04/01/2004 only
+"mmddyyyy" ==> 04/01/2004, 04.01.2004, 04012004, etc...
 """
 
 from os import rename
@@ -93,10 +93,10 @@ def parse_args():
 	# Make -p and -d mutually exclusive
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument('-p', '--pattern', nargs=2, type=str,
-		metavar=('SEARCH_PATTERN', 'REPLACE_PATTERN'),
+		metavar=('<search_pattern>', '<replace_pattern>'),
 		help=('rename all matching files from <search_pattern> to'
 			'<replace_pattern>'))
-	group.add_argument('-d', '--date', nargs=1, type=str, metavar='FORMAT',
+	group.add_argument('-d', '--date', nargs=1, type=str, metavar='<format>',
 		help=('reformat any dates found in filenames to conform to ISO 8601'
 			'(yyyy-mm-dd)'))
 
