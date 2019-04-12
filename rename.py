@@ -207,6 +207,47 @@ def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER,
 		m.group('suffix'))
 	return reformatted_str
 
+def remove_collisions(rename_pairs):
+	# Given a list of length-two tuples, ensure that the second value in each
+	# tuple is unique by adding a suffix number (i.e. '_1', '_2'. ...) where
+	# necessary, and return the resulting collsion-free `rename_pairs`
+
+	# First, find all the collisions. The following dict will be formatted as
+	# follows:
+	# {
+	#     index1: [collision1_1, collision1_2, ...]
+	#     index2: [collision2_1, collision2_2, ...]
+	#     ...
+	# }
+	collisions = {}
+	known_colliders = set() # This list is to avoid double-listing indices
+	for i in range(0, len(rename_pairs) - 1):
+		for j in range(i + 1, len(rename_pairs)):
+			if (rename_pairs[i][1] == rename_pairs[j][1] and
+				j not in known_colliders):
+				known_colliders.add(i)
+				known_colliders.add(j)
+				if i in collisions:
+					collisions[i].append(j)
+				else:
+					collisions[i] = [j]
+
+	# Now, remove those collisions. If the string ends with what appears to be
+	# a file extension, place the number before the extension.
+	p = re.compile(r'(?P<a>.*?)(?P<b>\.[^.]+)?$')
+	for i in collisions:
+		for j in range(0, len(collisions[i])):
+			k = collisions[i][j] # Index in rename_pairs
+			p2 = r'\g<a>_' + str(j + 2) + r'\g<b>'
+			rename_pairs[k][1] = re.sub(p, p2, rename_pairs[k][1], 1)
+
+	# Sanity check
+	resultants = [i[1] for i in rename_pairs]
+	if len(resultants) != len(set(resultants)):
+		raise ValueError('Collision removal algorithm failure')
+
+	return rename_pairs
+
 def main():
 	args = parse_args()
 	if args.pattern:
@@ -219,8 +260,9 @@ def main():
 			century_prefix=(args.century if not args.century else
 				args.century[0]))] for f in args.files]
 
-	# Remove trivial renames
+	# Remove trivial renames and collisions
 	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
+	rename_pairs = remove_collisions(rename_pairs)
 
 	for i in rename_pairs: # Show preview of rename operations
 		print(i[0] + ' ==> ' + i[1])
