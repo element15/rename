@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-VERSION='0.0.1'
+VERSION='dev'
 LICENSE = """\
 rename.py
 Version dev
