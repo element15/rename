@@ -1,6 +1,6 @@
 # rename.py
 
-Version 0.0.1    
+Version 0.1.0  
 Written by Christian Moomaw
 
 ## USAGE

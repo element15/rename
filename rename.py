@@ -1,9 +1,8 @@
 #!/usr/local/bin/python3
 
-VERSION='dev'
+VERSION='0.1.0'
 LICENSE = """\
 rename.py
-Version dev
 Written by Christian Moomaw
 
 This is free and unencumbered software released into the public domain.
