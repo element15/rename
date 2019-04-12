@@ -87,7 +87,7 @@ def parse_args():
 		help="perform a dry run; don't actually rename anything")
 	parser.add_argument('-v', '--version', action='version',
 		version=('%(prog)s ' + VERSION), help='print the version and exit')
-	parser.add_argument('-c', '--century', metavar='century_prefix', type=str,
+	parser.add_argument('-c', '--century', metavar='<century_prefix>', type=str,
 		nargs=1, help='specify the number to prepend to two-digit years')
 
 	# Make -p and -d mutually exclusive
