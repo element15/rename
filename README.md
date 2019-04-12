@@ -1,6 +1,6 @@
 # rename.py
 
-Version 0.0.1    
+Version 0.1.0  
 Written by Christian Moomaw
 
 ## USAGE
@@ -19,7 +19,7 @@ Written by Christian Moomaw
 	  -h, --help            show this help message and exit
 	  -n, --dry-run         perform a dry run; don't actually rename anything
 	  -v, --version         print the version and exit
-	  -c century_prefix, --century century_prefix
+	  -c <century_prefix>, --century <century_prefix>
 	                        specify the number to prepend to two-digit years
 	  -p <search_pattern> <replace_pattern>, --pattern <search_pattern> <replace_pattern>
 	                        rename all matching files from <search_pattern>
