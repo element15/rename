@@ -211,13 +211,13 @@ def main():
 	args = parse_args()
 	if args.pattern:
 		p = re.compile(args.pattern[0])
-		rename_pairs = [(f, re.sub(p, args.pattern[1], f, 1))
+		rename_pairs = [[f, re.sub(p, args.pattern[1], f, 1)]
 			for f in args.files]
 	else: # args.date
 		p = date_pattern(args.date[0])
-		rename_pairs = [(f, reformat_date(f, p,
+		rename_pairs = [[f, reformat_date(f, p,
 			century_prefix=(args.century if not args.century else
-				args.century[0]))) for f in args.files]
+				args.century[0]))] for f in args.files]
 
 	# Remove trivial renames
 	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
