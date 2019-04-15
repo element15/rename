@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-VERSION='0.1.0'
+VERSION='dev'
 LICENSE = """\
 rename.py
 Written by Christian Moomaw
@@ -141,10 +141,13 @@ def date_pattern(mode):
 		raise ValueError('Invalid date pattern: ' + mode)
 
 	# Build the date regex pattern from the appropriate `mode_key` entries
+	date_separators = r'[_.\- ]'
 	mode_values = [mode_key[mode_match.group(i)] for i in ('a', 'b', 'c')]
 	date_pattern = re.compile(r'(?P<prefix>.*?)' +
-		mode_values[0][0] + r',?[.\- ]' + (r'' if mode_values[0][1] else r'?') +
-		mode_values[1][0] + r',?[.\- ]' + (r'' if mode_values[1][1] else r'?') +
+		mode_values[0][0] + r',?' + date_separators +
+		(r'' if mode_values[0][1] else r'?') +
+		mode_values[1][0] + r',?' + date_separators +
+		(r'' if mode_values[1][1] else r'?') +
 		mode_values[2][0] + r'(?P<suffix>.*)'
 	)
 	return date_pattern
