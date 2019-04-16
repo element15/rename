@@ -29,10 +29,9 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 """
 help_description = """\
-Rename the files described according to Python regex patterns`search_pattern`
-and `replace_pattern`.
+Rename files according to regex patterns.
 """
-help_epilogue = """\
+pattern_help_epilogue = """\
 
 MORE DETAILS
 
@@ -41,8 +40,11 @@ refer to the Python 3 `re` documentation (link below). For details on how to
 format <replace_pattern> refer to #re.sub on the aforementioned doc page.
 
 https://docs.python.org/3/library/re.html
+"""
+date_help_epilogue = """\
 
-The `--date` option likewise requires the existing date format to be specified.
+MORE DETAILS
+
 Date formats consist of three parts (day, month, and year) which may be in any
 order:
 
@@ -74,35 +76,82 @@ import re
 # 1900s. This value may be overriden by the user using a command argument
 DEFAULT_CENTURY_ROLLOVER = 50
 
-def parse_args():
-	# Parse the command arguments in sys.argv
+def main():
+	# Parse the command arguments in sys.argv and invoke the appropriate
+	# function
 
 	parser = argparse.ArgumentParser(description=help_description,
-		epilog=help_epilogue,
 		formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('files', metavar='file', type=str, nargs='+',
-		help='file to be renamed')
-	parser.add_argument('-n', '--dry-run', action='store_true',
-		help="perform a dry run; don't actually rename anything")
-	parser.add_argument('-v', '--version', action='version',
+	subparsers = parser.add_subparsers(title='sub-commands',
+		help=('run `%(prog)s <command> -h` for help with a particular '
+			'sub-command'))
+
+	common_parser = argparse.ArgumentParser(add_help=False)
+	common_parser.add_argument('-v', '--version', action='version',
 		version=('%(prog)s ' + VERSION), help='print the version and exit')
-	parser.add_argument('-c', '--century', metavar='<century_prefix>', type=str,
-		nargs=1, help='specify the number to prepend to two-digit years')
+	common_parser.add_argument('-d', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
 
-	# Make -p and -d mutually exclusive
-	group = parser.add_mutually_exclusive_group(required=True)
-	group.add_argument('-p', '--pattern', nargs=2, type=str,
-		metavar=('<search_pattern>', '<replace_pattern>'),
-		help=('rename all matching files from <search_pattern> to'
-			'<replace_pattern>'))
-	group.add_argument('-d', '--date', nargs=1, type=str, metavar='<format>',
+	pattern_parser = subparsers.add_parser('pattern',
+		help='rename files based on a regex pattern',
+		epilog=pattern_help_epilogue, parents=[common_parser],
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	pattern_parser.set_defaults(func=pattern)
+
+	pattern_parser.add_argument('search', metavar='<search_pattern>',
+		type=str, nargs=1, help='source regex pattern')
+	pattern_parser.add_argument('replace', metavar='<replace_pattern>',
+		type=str, nargs=1, help='replace regex pattern')
+	pattern_parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
+
+	date_parser = subparsers.add_parser('date',
 		help=('reformat any dates found in filenames to conform to ISO 8601 '
-			'(yyyy-mm-dd)'))
-
+			'(yyyy-mm-dd)'), epilog=date_help_epilogue, parents=[common_parser],
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	date_parser.set_defaults(func=date)
+	date_parser.add_argument('mode', metavar='<format>', nargs=1, type=str,
+		help=('existing date format in filenames. See below for more details '
+			'concerning valid input date formats.'))
+	date_parser.add_argument('-c', '--century', metavar='<prefix>', type=str,
+		nargs=1, help=('specify the number to prepend to two-digit years '
+			'(default: "%(default)s")'), default=None)
+	date_parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
 
 	args = parser.parse_args()
-	return args
+	args.func(args)
 
+def pattern(args):
+	# Execute a simple pattern-based rename
+	p = re.compile(args.search[0])
+	rename_pairs = [[f, re.sub(p, args.replace[0], f, 1)] for f in args.files]
+	execute_rename(rename_pairs, dry_run=args.dry_run)
+
+def date(args):
+	# Execute a date-reformatting rename
+	p = date_pattern(args.mode[0])
+	rename_pairs = [[f, reformat_date(f, p,
+		century_prefix=(args.century if not args.century else
+			args.century[0]))] for f in args.files]
+	execute_rename(rename_pairs, dry_run=args.dry_run)
+
+def execute_rename(rename_pairs, dry_run=True):
+	# Perform some cleanup operations on the given set of rename pairs,
+
+	# Remove trivial renames and collisions
+	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
+	rename_pairs = remove_collisions(rename_pairs)
+
+	for i in rename_pairs: # Show preview of rename operations
+		print(i[0] + ' ==> ' + i[1])
+
+	if not dry_run:
+		response = input('Continue with rename? [y/N] ').lower()
+		affermative = ('y', 'yes')
+		if response in affermative:
+			for i in rename_pairs:
+				rename(i[0], i[1])
 
 def date_pattern(mode):
 	# Given a string describing an existing date format, generate a regex
@@ -249,31 +298,5 @@ def remove_collisions(rename_pairs):
 		raise ValueError('Collision removal algorithm failure')
 
 	return rename_pairs
-
-def main():
-	args = parse_args()
-	if args.pattern:
-		p = re.compile(args.pattern[0])
-		rename_pairs = [[f, re.sub(p, args.pattern[1], f, 1)]
-			for f in args.files]
-	else: # args.date
-		p = date_pattern(args.date[0])
-		rename_pairs = [[f, reformat_date(f, p,
-			century_prefix=(args.century if not args.century else
-				args.century[0]))] for f in args.files]
-
-	# Remove trivial renames and collisions
-	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
-	rename_pairs = remove_collisions(rename_pairs)
-
-	for i in rename_pairs: # Show preview of rename operations
-		print(i[0] + ' ==> ' + i[1])
-
-	if not args.dry_run:
-		response = input('Continue with rename? [y/N] ').lower()
-		affermative = ('y', 'yes')
-		if response in affermative:
-			for i in rename_pairs:
-				rename(i[0], i[1])
 
 main()
