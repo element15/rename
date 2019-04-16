@@ -84,7 +84,7 @@ def main():
 
 	pattern_parser = subparsers.add_parser('pattern',
 		help='rename files based on a regex pattern',
-		epilog=pattern_help_epilogue,
+		epilog=pattern_help_epilogue, aliases=['p'],
 		formatter_class=argparse.RawDescriptionHelpFormatter)
 	pattern_parser.set_defaults(func=pattern)
 
@@ -99,7 +99,7 @@ def main():
 
 	date_parser = subparsers.add_parser('date',
 		help=('reformat any dates found in filenames to conform to ISO 8601 '
-			'(yyyy-mm-dd)'), epilog=date_help_epilogue,
+			'(yyyy-mm-dd)'), epilog=date_help_epilogue, aliases=['d'],
 		formatter_class=argparse.RawDescriptionHelpFormatter)
 	date_parser.set_defaults(func=date)
 
