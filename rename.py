@@ -171,14 +171,14 @@ def date_pattern(mode, input_separator, strict_commas):
 	mode_key = {
 		# NOTE: The presence of a three-digit year in a filename results in
 		# undefined behavior.
-		'y': 	(r'(?P<y>\d{2,4})', True),  # 04, 2004 (and 004; see note above)
-		'yy': 	(r'(?P<y>\d{2})',   False), # 04
-		'yyyy': (r'(?P<y>\d{4})',   False), # 2004
-		'm': 	(r'(?P<m>\d{1,2})', True),  # 4, 04
-		'mm': 	(r'(?P<m>\d{2})',   False), # 04
-		'mmm': 	(r'(?P<m>[a-zA-Z]+)',     False), # Apr, April, aprile
-		'd': 	(r'(?P<d>\d{1,2})', True),  # 1, 01
-		'dd': 	(r'(?P<d>\d{2})',   False), # 01
+		'y': 	(r'(?P<y>\d{2,4})',   True),  # 04, 2004 (and 004; see above)
+		'yy': 	(r'(?P<y>\d{2})',     False), # 04
+		'yyyy': (r'(?P<y>\d{4})',     False), # 2004
+		'm': 	(r'(?P<m>\d{1,2})',   True),  # 4, 04
+		'mm': 	(r'(?P<m>\d{2})',     False), # 04
+		'mmm': 	(r'(?P<m>[a-zA-Z]+)', False), # Apr, April, aprile
+		'd': 	(r'(?P<d>\d{1,2})',   True),  # 1, 01
+		'dd': 	(r'(?P<d>\d{2})',     False), # 01
 	}
 
 	# Parse the mode spec by separating it into it's three components
