@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-VERSION='0.1.0'
+VERSION='0.2.0'
 LICENSE = """\
 rename.py
 Written by Christian Moomaw
@@ -29,10 +29,9 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 """
 help_description = """\
-Rename the files described according to Python regex patterns`search_pattern`
-and `replace_pattern`.
+Rename files according to regex patterns.
 """
-help_epilogue = """\
+pattern_help_epilogue = """\
 
 MORE DETAILS
 
@@ -41,8 +40,11 @@ refer to the Python 3 `re` documentation (link below). For details on how to
 format <replace_pattern> refer to #re.sub on the aforementioned doc page.
 
 https://docs.python.org/3/library/re.html
+"""
+date_help_epilogue = """\
 
-The `--date` option likewise requires the existing date format to be specified.
+MORE DETAILS
+
 Date formats consist of three parts (day, month, and year) which may be in any
 order:
 
@@ -69,42 +71,95 @@ from warnings import warn
 import argparse
 import re
 
-# Two digit years which are strictly less than this value will be interpreted
-# as being a part of the 2000s. All other years will be considered part of the
-# 1900s. This value may be overriden by the user using a command argument
-DEFAULT_CENTURY_ROLLOVER = 50
-
-def parse_args():
-	# Parse the command arguments in sys.argv
+def main():
+	# Parse the command arguments in sys.argv and invoke the appropriate
+	# function
 
 	parser = argparse.ArgumentParser(description=help_description,
-		epilog=help_epilogue,
 		formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('files', metavar='file', type=str, nargs='+',
-		help='file to be renamed')
-	parser.add_argument('-n', '--dry-run', action='store_true',
-		help="perform a dry run; don't actually rename anything")
+	subparsers = parser.add_subparsers(title='sub-commands',
+		help=('run `%(prog)s <command> -h` for help with a particular '
+			'sub-command'))
 	parser.add_argument('-v', '--version', action='version',
 		version=('%(prog)s ' + VERSION), help='print the version and exit')
-	parser.add_argument('-c', '--century', metavar='<century_prefix>', type=str,
-		nargs=1, help='specify the number to prepend to two-digit years')
 
-	# Make -p and -d mutually exclusive
-	group = parser.add_mutually_exclusive_group(required=True)
-	group.add_argument('-p', '--pattern', nargs=2, type=str,
-		metavar=('<search_pattern>', '<replace_pattern>'),
-		help=('rename all matching files from <search_pattern> to'
-			'<replace_pattern>'))
-	group.add_argument('-d', '--date', nargs=1, type=str, metavar='<format>',
+	pattern_parser = subparsers.add_parser('pattern',
+		help='rename files based on a regex pattern',
+		epilog=pattern_help_epilogue,
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	pattern_parser.set_defaults(func=pattern)
+
+	pattern_parser.add_argument('-d', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
+	pattern_parser.add_argument('search', metavar='<search_pattern>',
+		type=str, nargs=1, help='source regex pattern')
+	pattern_parser.add_argument('replace', metavar='<replace_pattern>',
+		type=str, nargs=1, help='replace regex pattern')
+	pattern_parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
+
+	date_parser = subparsers.add_parser('date',
 		help=('reformat any dates found in filenames to conform to ISO 8601 '
-			'(yyyy-mm-dd)'))
+			'(yyyy-mm-dd)'), epilog=date_help_epilogue,
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	date_parser.set_defaults(func=date)
 
+	date_parser.add_argument('-d', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
+	date_parser.add_argument('-c', '--century', metavar='<prefix>', type=str,
+		nargs=1, help=('specify the number to prepend to two-digit years '
+			'(default: "%(default)s")'), default=["20"])
+	date_parser.add_argument('-i', '--input-separator', metavar='<separator>',
+		type=str, nargs=1, help=('specify the character class of separators '
+			'between input date components (default: "%(default)s")'),
+		default=[r'[_.\- ]'])
+	date_parser.add_argument('-o', '--output-separator', metavar='<separator>',
+		type=str, nargs=1, help=('specify the separator between output date '
+			'components (default: "%(default)s")'), default=[r'-'])
+	date_parser.add_argument('-s', '--strict-commas', action='store_true',
+		help=('disallow commas following date components (i.e. '
+			'April 1, 2004)'))
+	date_parser.add_argument('mode', metavar='<format>', nargs=1, type=str,
+		help=('existing date format in filenames. See below for more details '
+			'concerning valid input date formats.'))
+	date_parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
 
 	args = parser.parse_args()
-	return args
+	args.func(args)
 
+def pattern(args):
+	# Execute a simple pattern-based rename
+	p = re.compile(args.search[0])
+	rename_pairs = [[f, re.sub(p, args.replace[0], f, 1)] for f in args.files]
+	execute_rename(rename_pairs, dry_run=args.dry_run)
 
-def date_pattern(mode):
+def date(args):
+	# Execute a date-reformatting rename
+	p = date_pattern(args.mode[0], args.input_separator[0], args.strict_commas)
+	rename_pairs = [
+		[f, reformat_date(f, p, args.output_separator[0], args.century[0])]
+		for f in args.files]
+	execute_rename(rename_pairs, dry_run=args.dry_run)
+
+def execute_rename(rename_pairs, dry_run=True):
+	# Perform some cleanup operations on the given set of rename pairs,
+
+	# Remove trivial renames and collisions
+	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
+	rename_pairs = remove_collisions(rename_pairs)
+
+	for i in rename_pairs: # Show preview of rename operations
+		print(i[0] + ' ==> ' + i[1])
+
+	if not dry_run:
+		response = input('Continue with rename? [y/N] ').lower()
+		affermative = ('y', 'yes')
+		if response in affermative:
+			for i in rename_pairs:
+				rename(i[0], i[1])
+
+def date_pattern(mode, input_separator, strict_commas):
 	# Given a string describing an existing date format, generate a regex
 	# pattern to extract a date matching said format from a string.
 
@@ -141,16 +196,18 @@ def date_pattern(mode):
 		raise ValueError('Invalid date pattern: ' + mode)
 
 	# Build the date regex pattern from the appropriate `mode_key` entries
+	comma = r'' if strict_commas else r',?'
 	mode_values = [mode_key[mode_match.group(i)] for i in ('a', 'b', 'c')]
 	date_pattern = re.compile(r'(?P<prefix>.*?)' +
-		mode_values[0][0] + r',?[.\- ]' + (r'' if mode_values[0][1] else r'?') +
-		mode_values[1][0] + r',?[.\- ]' + (r'' if mode_values[1][1] else r'?') +
+		mode_values[0][0] + comma + input_separator +
+		(r'' if mode_values[0][1] else r'?') +
+		mode_values[1][0] + comma + input_separator +
+		(r'' if mode_values[1][1] else r'?') +
 		mode_values[2][0] + r'(?P<suffix>.*)'
 	)
 	return date_pattern
 
-def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER,
-	century_prefix=None):
+def reformat_date(str, pattern, separator, century):
 	# Given arbitrary string `str` and regex pattern `pattern` generated by
 	# `date_pattern()`, find and reformat a date in `str` to be of the form
 	# 'yyyy-mm-dd' (see ISO 8601). The `rollover` value determines how
@@ -182,10 +239,6 @@ def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER,
 
 	# Prepend '19' or '20' to the year if necessary
 	if len(year) == 2:
-		if century_prefix:
-			century = century_prefix
-		else:
-			century = '20' if int(year) < rollover else '19'
 		year = century + year
 	# Normalize the month according to `month_key`
 	month = month.lower()
@@ -202,8 +255,8 @@ def reformat_date(str, pattern, rollover=DEFAULT_CENTURY_ROLLOVER,
 		day = '0' + day
 
 	# Generate new string with normalized date
-	reformatted_str = (m.group('prefix') + year + '-' + month + '-' + day +
-		m.group('suffix'))
+	reformatted_str = (m.group('prefix') + year + separator + month +
+		separator + day + m.group('suffix'))
 	return reformatted_str
 
 def remove_collisions(rename_pairs):
@@ -246,31 +299,5 @@ def remove_collisions(rename_pairs):
 		raise ValueError('Collision removal algorithm failure')
 
 	return rename_pairs
-
-def main():
-	args = parse_args()
-	if args.pattern:
-		p = re.compile(args.pattern[0])
-		rename_pairs = [[f, re.sub(p, args.pattern[1], f, 1)]
-			for f in args.files]
-	else: # args.date
-		p = date_pattern(args.date[0])
-		rename_pairs = [[f, reformat_date(f, p,
-			century_prefix=(args.century if not args.century else
-				args.century[0]))] for f in args.files]
-
-	# Remove trivial renames and collisions
-	rename_pairs = [i for i in rename_pairs if i[0] != i[1]]
-	rename_pairs = remove_collisions(rename_pairs)
-
-	for i in rename_pairs: # Show preview of rename operations
-		print(i[0] + ' ==> ' + i[1])
-
-	if not args.dry_run:
-		response = input('Continue with rename? [y/N] ').lower()
-		affermative = ('y', 'yes')
-		if response in affermative:
-			for i in rename_pairs:
-				rename(i[0], i[1])
 
 main()
