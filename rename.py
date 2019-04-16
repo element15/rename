@@ -176,7 +176,7 @@ def date_pattern(mode, input_separator, strict_commas):
 		'yyyy': (r'(?P<y>\d{4})',   False), # 2004
 		'm': 	(r'(?P<m>\d{1,2})', True),  # 4, 04
 		'mm': 	(r'(?P<m>\d{2})',   False), # 04
-		'mmm': 	(r'(?P<m>\w+)',     False), # Apr, April, aprile
+		'mmm': 	(r'(?P<m>[a-zA-Z]+)',     False), # Apr, April, aprile
 		'd': 	(r'(?P<d>\d{1,2})', True),  # 1, 01
 		'dd': 	(r'(?P<d>\d{2})',   False), # 01
 	}
