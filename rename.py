@@ -90,6 +90,8 @@ def main():
 
 	pattern_parser.add_argument('-d', '--dry-run', action='store_true',
 		help="perform a dry run; don't actually rename anything")
+	pattern_parser.add_argument('-m', '--multiple', action='store_true',
+		help='allow multiple string replacements in a single filename')
 	pattern_parser.add_argument('search', metavar='<search_pattern>',
 		type=str, nargs=1, help='source regex pattern')
 	pattern_parser.add_argument('replace', metavar='<replace_pattern>',
@@ -130,7 +132,9 @@ def main():
 def pattern(args):
 	# Execute a simple pattern-based rename
 	p = re.compile(args.search[0])
-	rename_pairs = [[f, re.sub(p, args.replace[0], f, 1)] for f in args.files]
+	rename_pairs = [
+		[f, re.sub(p, args.replace[0], f, (0 if args.multiple else 1))]
+		for f in args.files]
 	execute_rename(rename_pairs, dry_run=args.dry_run)
 
 def date(args):
