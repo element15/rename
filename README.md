@@ -1,44 +1,77 @@
 # rename.py
 
-Version 0.1.0  
+Version 0.2.0  
 Written by Christian Moomaw
 
 ## USAGE
 
-	usage: rename.py [-h] [-n] [-v] [-c century_prefix]
-	                 (-p <search_pattern> <replace_pattern> | -d <format>)
-	                 file [file ...]
+	usage: rename.py [-h] [-v] {pattern,date} ...
 
-	Rename the files described according to Python regex patterns`search_pattern`
-	and `replace_pattern`.
+	Rename files according to regex patterns.
+
+	optional arguments:
+	  -h, --help      show this help message and exit
+	  -v, --version   print the version and exit
+
+	sub-commands:
+	  {pattern,date}  run `rename.py <command> -h` for help with a particular sub-
+	                  command
+	    pattern       rename files based on a regex pattern
+	    date          reformat any dates found in filenames to conform to ISO 8601
+	                  (yyyy-mm-dd)
+
+### `pattern` sub-command
+
+	usage: rename.py pattern [-h] [-d]
+	                         <search_pattern> <replace_pattern> file [file ...]
 
 	positional arguments:
+	  <search_pattern>   source regex pattern
+	  <replace_pattern>  replace regex pattern
+	  file               file to be renamed
+
+	optional arguments:
+	  -h, --help         show this help message and exit
+	  -d, --dry-run      perform a dry run; don't actually rename anything
+
+	MORE DETAILS
+
+	For details on the permitted regex grammar for the <search_pattern> argument,
+	refer to the Python 3 `re` documentation (link below). For details on how to
+	format <replace_pattern> refer to #re.sub on the aforementioned doc page.
+
+	https://docs.python.org/3/library/re.html
+
+### `date` sub-command
+
+	usage: rename.py date [-h] [-d] [-c <prefix>] [-i <separator>]
+	                      [-o <separator>] [-s]
+	                      <format> file [file ...]
+
+	positional arguments:
+	  <format>              existing date format in filenames. See below for more
+	                        details concerning valid input date formats.
 	  file                  file to be renamed
 
 	optional arguments:
 	  -h, --help            show this help message and exit
-	  -n, --dry-run         perform a dry run; don't actually rename anything
-	  -v, --version         print the version and exit
-	  -c <century_prefix>, --century <century_prefix>
+	  -d, --dry-run         perform a dry run; don't actually rename anything
+	  -c <prefix>, --century <prefix>
 	                        specify the number to prepend to two-digit years
-	  -p <search_pattern> <replace_pattern>, --pattern <search_pattern> <replace_pattern>
-	                        rename all matching files from <search_pattern>
-	                        to<replace_pattern>
-	  -d <format>, --date <format>
-	                        reformat any dates found in filenames to conform to
-	                        ISO 8601 (yyyy-mm-dd)
+	                        (default: "['20']")
+	  -i <separator>, --input-separator <separator>
+	                        specify the character class of separators between
+	                        input date components (default: "['[_.\\- ]']")
+	  -o <separator>, --output-separator <separator>
+	                        specify the separator between output date components
+	                        (default: "['-']")
+	  -s, --strict-commas   disallow commas following date components (i.e. April
+	                        1, 2004)
 
-## MORE DETAILS
+	MORE DETAILS
 
-For details on the permitted regex grammar for the <search_pattern> argument,
-refer to the Python 3 `re` documentation (link below). For details on how to
-format <replace_pattern> refer to #re.sub on the aforementioned doc page.
-
-https://docs.python.org/3/library/re.html
-
-The `--date` option likewise requires the existing date format to be specified.
-Date formats consist of three parts (day, month, and year) which may be in any
-order:
+	Date formats consist of three parts (day, month, and year) which may be in any
+	order:
 
 	Year formats:
 	    y    two or four-digit year (04 or 2004)
