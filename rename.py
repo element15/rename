@@ -80,19 +80,17 @@ def main():
 	subparsers = parser.add_subparsers(title='sub-commands',
 		help=('run `%(prog)s <command> -h` for help with a particular '
 			'sub-command'))
-
-	common_parser = argparse.ArgumentParser(add_help=False)
-	common_parser.add_argument('-v', '--version', action='version',
+	parser.add_argument('-v', '--version', action='version',
 		version=('%(prog)s ' + VERSION), help='print the version and exit')
-	common_parser.add_argument('-d', '--dry-run', action='store_true',
-		help="perform a dry run; don't actually rename anything")
 
 	pattern_parser = subparsers.add_parser('pattern',
 		help='rename files based on a regex pattern',
-		epilog=pattern_help_epilogue, parents=[common_parser],
+		epilog=pattern_help_epilogue,
 		formatter_class=argparse.RawDescriptionHelpFormatter)
 	pattern_parser.set_defaults(func=pattern)
 
+	pattern_parser.add_argument('-d', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
 	pattern_parser.add_argument('search', metavar='<search_pattern>',
 		type=str, nargs=1, help='source regex pattern')
 	pattern_parser.add_argument('replace', metavar='<replace_pattern>',
@@ -102,17 +100,15 @@ def main():
 
 	date_parser = subparsers.add_parser('date',
 		help=('reformat any dates found in filenames to conform to ISO 8601 '
-			'(yyyy-mm-dd)'), epilog=date_help_epilogue, parents=[common_parser],
+			'(yyyy-mm-dd)'), epilog=date_help_epilogue,
 		formatter_class=argparse.RawDescriptionHelpFormatter)
 	date_parser.set_defaults(func=date)
-	date_parser.add_argument('mode', metavar='<format>', nargs=1, type=str,
-		help=('existing date format in filenames. See below for more details '
-			'concerning valid input date formats.'))
+
+	date_parser.add_argument('-d', '--dry-run', action='store_true',
+		help="perform a dry run; don't actually rename anything")
 	date_parser.add_argument('-c', '--century', metavar='<prefix>', type=str,
 		nargs=1, help=('specify the number to prepend to two-digit years '
 			'(default: "%(default)s")'), default=["20"])
-	date_parser.add_argument('files', metavar='file', type=str, nargs='+',
-		help='file to be renamed')
 	date_parser.add_argument('-i', '--input-separator', metavar='<separator>',
 		type=str, nargs=1, help=('specify the character class of separators '
 			'between input date components (default: "%(default)s")'),
@@ -123,6 +119,11 @@ def main():
 	date_parser.add_argument('-s', '--strict-commas', action='store_true',
 		help=('disallow commas following date components (i.e. '
 			'April 1, 2004)'))
+	date_parser.add_argument('mode', metavar='<format>', nargs=1, type=str,
+		help=('existing date format in filenames. See below for more details '
+			'concerning valid input date formats.'))
+	date_parser.add_argument('files', metavar='file', type=str, nargs='+',
+		help='file to be renamed')
 
 	args = parser.parse_args()
 	args.func(args)
