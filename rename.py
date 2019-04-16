@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-VERSION='0.2.0'
+VERSION='dev'
 LICENSE = """\
 rename.py
 Written by Christian Moomaw
@@ -67,7 +67,6 @@ Examples:
 """
 
 from os import rename
-from warnings import warn
 import argparse
 import re
 
@@ -231,7 +230,7 @@ def reformat_date(str, pattern, separator, century):
 
 	m = pattern.match(str)
 	if not m:
-		warn('No date match found in string: ' + str)
+		print('No date match found in string: ' + str)
 		return str
 	year = m.group('y')
 	month = m.group('m')
