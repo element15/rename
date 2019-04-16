@@ -115,7 +115,7 @@ def main():
 			'concerning valid input date formats.'))
 	date_parser.add_argument('-c', '--century', metavar='<prefix>', type=str,
 		nargs=1, help=('specify the number to prepend to two-digit years '
-			'(default: "%(default)s")'), default=None)
+			'(default: "%(default)s")'), default=[None])
 	date_parser.add_argument('files', metavar='file', type=str, nargs='+',
 		help='file to be renamed')
 
@@ -132,8 +132,7 @@ def date(args):
 	# Execute a date-reformatting rename
 	p = date_pattern(args.mode[0])
 	rename_pairs = [[f, reformat_date(f, p,
-		century_prefix=(args.century if not args.century else
-			args.century[0]))] for f in args.files]
+		century_prefix=args.century[0])] for f in args.files]
 	execute_rename(rename_pairs, dry_run=args.dry_run)
 
 def execute_rename(rename_pairs, dry_run=True):
