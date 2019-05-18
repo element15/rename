@@ -1,6 +1,6 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
-VERSION='0.3.0'
+VERSION='0.3.1'
 LICENSE = """\
 rename.py
 Written by Christian Moomaw
