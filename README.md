@@ -1,24 +1,28 @@
 # rename.py
 
-Version 0.2.0  
+Version 0.3.0  
 Written by Christian Moomaw
 
 ## USAGE
 
-	usage: rename.py [-h] [-v] {pattern,date} ...
+	usage: rename.py [-h] [-v] {pattern,p,multipattern,m,mp,multi,date,d} ...
 
 	Rename files according to regex patterns.
 
 	optional arguments:
-	  -h, --help      show this help message and exit
-	  -v, --version   print the version and exit
+	  -h, --help            show this help message and exit
+	  -v, --version         print the version and exit
 
 	sub-commands:
-	  {pattern,date}  run `rename.py <command> -h` for help with a particular sub-
-	                  command
-	    pattern       rename files based on a regex pattern
-	    date          reformat any dates found in filenames to conform to ISO 8601
-	                  (yyyy-mm-dd)
+	  {pattern,p,multipattern,m,mp,multi,date,d}
+	                        run `rename.py <command> -h` for help with a
+	                        particular sub-command
+	    pattern (p)         rename files based on a regex pattern
+	    multipattern (m, mp, multi)
+	                        rename files based on multiple regex files loaded from
+	                        a JSON file
+	    date (d)            reformat any dates found in filenames to conform to
+	                        ISO 8601 (yyyy-mm-dd)
 
 ### `pattern` sub-command
 
@@ -41,6 +45,44 @@ Written by Christian Moomaw
 	format <replace_pattern> refer to #re.sub on the aforementioned doc page.
 
 	https://docs.python.org/3/library/re.html
+
+
+### `multipattern` sub-command
+
+	usage: rename.py multipattern [-h] [-d] <pattern_file> file [file ...]
+
+	positional arguments:
+	  <pattern_file>  source JSON pattern file
+	  file            file to be renamed
+
+	optional arguments:
+	  -h, --help      show this help message and exit
+	  -d, --dry-run   perform a dry run; don't actually rename anything
+
+	MORE DETAILS
+
+	IMPORTANT: Backslash ('\') characters in the pattern file must be properly
+	escaped.
+
+	The given JSON files must be formatted as an array of arrays. The outer array
+	contains the collection of pattern pairs, and each inner array represents one
+	pattern pair. Additionally, multiple string replacements may be allowed for a
+	given pattern pair by adding a third value to the inner array equal to 'm',
+	'multi', or 'multiple', similar to specifying the `-m` flag for single pattern
+	replacement. PseudoJSON and an example follow:
+
+	[
+		['search_pattern_1', 'replace_pattern_1', 'm'],
+		['search_pattern_2', 'replace_pattern_2'],
+		['search_pattern_3', 'replace_pattern_3', 'multi']
+	]
+
+	[
+	    ['([\\d \\-]_spam_eggs\\.txt', 'spam_eggs_\\g<1>.txt'],
+	    ['bakedbeans', 'spam', 'm'],
+	    ['(\\d+)_', '\\g<1>-', 'm']
+	]
+
 
 ### `date` sub-command
 
